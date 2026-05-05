@@ -1,0 +1,2469 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sydney Grocery DC Location Planner</title>
+
+  <!-- Leaflet CSS from CDN -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIINfQb8PwWZ6VfKEqGkGPNHGJY7n2+f6A="
+    crossorigin=""
+  >
+
+  <style>
+    /* Base page reset */
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: #1f2933;
+      background: #f4f7fb;
+    }
+
+    body {
+      overflow: hidden;
+    }
+
+    /* Two-column application shell */
+    .app {
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    /* Fixed presentation sidebar */
+    .sidebar {
+      width: 360px;
+      flex: 0 0 360px;
+      height: 100vh;
+      padding: 28px 26px;
+      overflow-y: auto;
+      border-right: 1px solid #d8e0ea;
+      background: #ffffff;
+      box-shadow: 4px 0 18px rgba(31, 41, 51, 0.08);
+      z-index: 10;
+    }
+
+    .sidebar h1 {
+      margin: 0 0 14px;
+      color: #0f2f4a;
+      font-size: 26px;
+      line-height: 1.2;
+      font-weight: 700;
+    }
+
+    .sidebar p {
+      margin: 0;
+      color: #536171;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .sidebar-section {
+      margin-top: 28px;
+      padding-top: 22px;
+      border-top: 1px solid #e4eaf1;
+    }
+
+    .sidebar-section h2 {
+      margin: 0 0 10px;
+      color: #334155;
+      font-size: 14px;
+      line-height: 1.3;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .info-list {
+      margin: 0;
+      padding-left: 18px;
+      color: #536171;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .status-card {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid #dbe5ef;
+      border-radius: 8px;
+      background: #f8fbff;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      color: #536171;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    .status-row strong {
+      color: #334155;
+      font-weight: 700;
+    }
+
+    .status-message {
+      margin-top: 4px;
+      padding: 10px 12px;
+      border-left: 4px solid #2563eb;
+      border-radius: 4px;
+      background: #eff6ff;
+      color: #1e3a8a;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .status-message.error {
+      border-left-color: #dc2626;
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .layer-toggle {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      color: #334155;
+      font-size: 15px;
+      line-height: 1.5;
+      cursor: pointer;
+    }
+
+    .layer-toggle input {
+      width: 17px;
+      height: 17px;
+      margin-top: 3px;
+      accent-color: #2563eb;
+    }
+
+    .layer-toggle + .layer-toggle {
+      margin-top: 10px;
+    }
+
+    .status-message + .layer-toggle {
+      margin-top: 14px;
+    }
+
+    .dc-card {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding: 14px;
+      border: 1px solid #dbe5ef;
+      border-radius: 8px;
+      background: #f8fbff;
+    }
+
+    .dc-card:last-of-type {
+      margin-bottom: 0;
+    }
+
+    .dc-heading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      color: #1f2933;
+      font-size: 15px;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .dc-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      height: 26px;
+      padding: 0 8px;
+      border-radius: 999px;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .dc-badge-red {
+      background: #dc2626;
+    }
+
+    .dc-badge-purple {
+      background: #7c3aed;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field-label {
+      display: grid;
+      gap: 6px;
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .number-input {
+      width: 100%;
+      min-height: 36px;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      color: #1f2933;
+      background: #ffffff;
+      font-size: 14px;
+    }
+
+    .select-input {
+      width: 100%;
+      min-height: 38px;
+      padding: 8px 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      color: #1f2933;
+      background: #ffffff;
+      font-size: 14px;
+    }
+
+    .number-input:focus,
+    .select-input:focus {
+      border-color: #2563eb;
+      outline: 3px solid rgba(37, 99, 235, 0.14);
+    }
+
+    .radius-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 6px;
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .radius-value {
+      color: #1f2933;
+      font-variant-numeric: tabular-nums;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #2563eb;
+    }
+
+    .button-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .action-button {
+      min-height: 38px;
+      border: 1px solid #bfccda;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #1f2933;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .action-button:hover {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    .action-button-primary {
+      border-color: #1d4ed8;
+      background: #2563eb;
+      color: #ffffff;
+    }
+
+    .action-button-primary:hover {
+      border-color: #1e40af;
+      background: #1d4ed8;
+    }
+
+    .dc-marker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 46px;
+      height: 46px;
+      border: 3px solid #ffffff;
+      border-radius: 50%;
+      color: #ffffff;
+      box-shadow: 0 10px 22px rgba(31, 41, 51, 0.28);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .dc-marker-red {
+      background: #dc2626;
+    }
+
+    .dc-marker-purple {
+      background: #7c3aed;
+    }
+
+    .popup-title {
+      margin: 0 0 8px;
+      color: #1f2933;
+      font-size: 15px;
+      font-weight: 700;
+    }
+
+    .popup-table {
+      border-collapse: collapse;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .popup-table td {
+      padding: 3px 10px 3px 0;
+      vertical-align: top;
+    }
+
+    .popup-table td:first-child {
+      color: #64748b;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .small-note {
+      margin-top: 12px;
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .metrics-grid {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .metric-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 9px 0;
+      border-bottom: 1px solid #e4eaf1;
+      color: #475569;
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .metric-row:last-child {
+      border-bottom: 0;
+    }
+
+    .metric-value {
+      color: #1f2933;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .legend-list {
+      display: grid;
+      gap: 9px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .legend-line {
+      width: 36px;
+      height: 0;
+      border-top: 4px solid #94a3b8;
+      border-radius: 999px;
+      flex: 0 0 auto;
+    }
+
+    .legend-fill {
+      width: 22px;
+      height: 14px;
+      border: 2px solid #2563eb;
+      background: rgba(147, 197, 253, 0.22);
+      border-radius: 4px;
+      flex: 0 0 auto;
+    }
+
+    .legend-circle {
+      width: 23px;
+      height: 23px;
+      border: 2px solid #7c3aed;
+      border-radius: 50%;
+      background: rgba(124, 58, 237, 0.14);
+      flex: 0 0 auto;
+    }
+
+    .legend-dot {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 1px rgba(31, 41, 51, 0.18);
+      flex: 0 0 auto;
+    }
+
+    .road-label {
+      padding: 3px 7px;
+      border: 2px solid #64748b;
+      border-radius: 6px;
+      background: #ffffff;
+      color: #1f2933;
+      box-shadow: 0 4px 12px rgba(31, 41, 51, 0.18);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .entry-marker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      height: 34px;
+      padding: 0 8px;
+      border: 2px solid #ffffff;
+      border-radius: 8px;
+      background: #1d4ed8;
+      color: #ffffff;
+      box-shadow: 0 8px 18px rgba(31, 41, 51, 0.24);
+      font-size: 11px;
+      font-weight: 800;
+      line-height: 1;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .benchmark-marker {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      background: #6b7280;
+      box-shadow: 0 5px 12px rgba(31, 41, 51, 0.2);
+    }
+
+    .benchmark-marker::after {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ffffff;
+    }
+
+    /*
+      Minimal Leaflet layout fallback:
+      If the CDN Leaflet stylesheet is slow or blocked, tiles and panes still
+      need absolute positioning. These rules mirror the essential Leaflet CSS
+      needed to avoid unpositioned map tiles appearing as a mosaic.
+    */
+    .leaflet-container {
+      overflow: hidden;
+      position: relative;
+      outline-offset: 1px;
+    }
+
+    .leaflet-pane,
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow,
+    .leaflet-tile-container,
+    .leaflet-pane > svg,
+    .leaflet-pane > canvas,
+    .leaflet-zoom-box,
+    .leaflet-image-layer,
+    .leaflet-layer {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    .leaflet-tile,
+    .leaflet-marker-icon,
+    .leaflet-marker-shadow {
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+
+    .leaflet-tile {
+      visibility: hidden;
+    }
+
+    .leaflet-tile-loaded {
+      visibility: inherit;
+    }
+
+    .leaflet-pane {
+      z-index: 400;
+    }
+
+    .leaflet-tile-pane {
+      z-index: 200;
+    }
+
+    .leaflet-overlay-pane {
+      z-index: 400;
+    }
+
+    .leaflet-shadow-pane {
+      z-index: 500;
+    }
+
+    .leaflet-marker-pane {
+      z-index: 600;
+    }
+
+    .leaflet-tooltip-pane {
+      z-index: 650;
+    }
+
+    .leaflet-popup-pane {
+      z-index: 700;
+    }
+
+    .leaflet-control {
+      position: relative;
+      z-index: 800;
+      pointer-events: auto;
+      float: left;
+      clear: both;
+    }
+
+    .leaflet-top,
+    .leaflet-bottom {
+      position: absolute;
+      z-index: 1000;
+      pointer-events: none;
+    }
+
+    .leaflet-top {
+      top: 0;
+    }
+
+    .leaflet-bottom {
+      bottom: 0;
+    }
+
+    .leaflet-left {
+      left: 0;
+    }
+
+    .leaflet-right {
+      right: 0;
+    }
+
+    /* Map fills all remaining horizontal space */
+    .map-wrap {
+      position: relative;
+      flex: 1 1 auto;
+      height: 100vh;
+      min-width: 0;
+    }
+
+    #map {
+      width: 100%;
+      height: 100%;
+      background: #e9eef5;
+    }
+
+    /* Lightly polish built-in Leaflet controls */
+    .leaflet-control-zoom {
+      border: 0 !important;
+      box-shadow: 0 8px 22px rgba(31, 41, 51, 0.18);
+    }
+
+    .leaflet-control-zoom a {
+      color: #1f2933;
+    }
+
+    .leaflet-control-attribution {
+      font-size: 11px;
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        flex: 0 0 auto;
+        height: auto;
+        max-height: 42vh;
+        border-right: 0;
+        border-bottom: 1px solid #d8e0ea;
+      }
+
+      .map-wrap {
+        height: 58vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <h1>Sydney Grocery DC Location Planner</h1>
+      <p>
+        This interactive map supports the selection of two distribution centres
+        for a grocery chain serving the Sydney metropolitan area.
+      </p>
+
+      <section class="sidebar-section" aria-label="Project context">
+        <h2>Map Setup</h2>
+        <ul class="info-list">
+          <li>Initial view centred on Greater Sydney.</li>
+          <li>CartoDB Positron basemap for a clean presentation style.</li>
+          <li>Boundary, corridor, and distribution centre layers can be added next.</li>
+        </ul>
+      </section>
+
+      <section class="sidebar-section" aria-label="Selection logic">
+        <h2>Selection Logic</h2>
+        <p>
+          The two recommended DC locations are Moorebank / Prestons and Eastern Creek / Erskine Park.
+          Moorebank / Prestons is selected because it has strong access to Port Botany, intermodal freight
+          rail, and the M5/M7 motorway network. This makes it suitable for inbound containers, refrigerated
+          imports, and southern/south-western store replenishment. Eastern Creek / Erskine Park is selected
+          because it is close to the M4/M7 motorway junction and is already used by major supermarket chains
+          for chilled and fresh distribution. This makes it suitable for western, north-western and northern
+          Sydney store coverage.
+        </p>
+      </section>
+
+      <section class="sidebar-section" aria-label="Boundary and data note">
+        <h2>Boundary and Data Note</h2>
+        <p>
+          GCCSA, SA3 and SA2 boundary layers are loaded from local GeoJSON files converted from shapefiles.
+          The Greater Sydney GCCSA boundary defines the metropolitan analysis area. SA3 and SA2 layers
+          provide regional detail for presentation and future store mapping.
+        </p>
+        <p class="small-note">
+          The LGA boundary layer is based on the Metropolitan Boundaries reference map. GCCSA is used as
+          the official metropolitan statistical boundary, while LGA boundaries provide an easier presentation view.
+        </p>
+      </section>
+
+      <section class="sidebar-section" aria-label="Prototype note">
+        <h2>Prototype Note</h2>
+        <p>
+          DC coordinates, freight corridors, and benchmark locations are approximate and intended for
+          presentation-level spatial testing. They can be replaced with verified coordinates and official
+          freight network datasets for final analysis.
+        </p>
+      </section>
+
+      <section class="sidebar-section" aria-label="Boundary status">
+        <h2>Boundary Status</h2>
+        <div class="status-card">
+          <div class="status-row">
+            <strong>Boundary source</strong>
+            <span>GCCSA GeoJSON</span>
+          </div>
+          <div class="status-row">
+            <strong>Selected area</strong>
+            <span>Greater Sydney</span>
+          </div>
+          <div id="statusMessage" class="status-message" role="status" aria-live="polite">
+            Loading Greater Sydney boundary...
+          </div>
+        </div>
+      </section>
+
+      <section class="sidebar-section" aria-label="Distribution centre controls">
+        <h2>Distribution Centres</h2>
+
+        <div class="dc-card">
+          <h3 class="dc-heading">
+            <span class="dc-badge dc-badge-red">DC 1</span>
+            <span>Moorebank / Prestons</span>
+          </h3>
+          <label class="field-label" for="dc1Preset">
+            Preset location
+            <select class="select-input" id="dc1Preset"></select>
+          </label>
+          <div class="form-grid">
+            <label class="field-label" for="dc1Lat">
+              Latitude
+              <input class="number-input" id="dc1Lat" type="number" step="0.0001" value="-33.9430">
+            </label>
+            <label class="field-label" for="dc1Lng">
+              Longitude
+              <input class="number-input" id="dc1Lng" type="number" step="0.0001" value="150.9180">
+            </label>
+          </div>
+          <div>
+            <div class="radius-row">
+              <label for="dc1Radius">Coverage radius</label>
+              <span class="radius-value" id="dc1RadiusValue">35 km</span>
+            </div>
+            <input id="dc1Radius" type="range" min="10" max="60" step="1" value="35">
+          </div>
+        </div>
+
+        <div class="dc-card">
+          <h3 class="dc-heading">
+            <span class="dc-badge dc-badge-purple">DC 2</span>
+            <span>Eastern Creek / Erskine Park</span>
+          </h3>
+          <label class="field-label" for="dc2Preset">
+            Preset location
+            <select class="select-input" id="dc2Preset"></select>
+          </label>
+          <div class="form-grid">
+            <label class="field-label" for="dc2Lat">
+              Latitude
+              <input class="number-input" id="dc2Lat" type="number" step="0.0001" value="-33.8130">
+            </label>
+            <label class="field-label" for="dc2Lng">
+              Longitude
+              <input class="number-input" id="dc2Lng" type="number" step="0.0001" value="150.8520">
+            </label>
+          </div>
+          <div>
+            <div class="radius-row">
+              <label for="dc2Radius">Coverage radius</label>
+              <span class="radius-value" id="dc2RadiusValue">35 km</span>
+            </div>
+            <input id="dc2Radius" type="range" min="10" max="60" step="1" value="35">
+          </div>
+        </div>
+
+        <p class="small-note">
+          Preset locations are approximate and used for presentation-level spatial testing.
+        </p>
+        <p class="small-note">
+          Benchmark points are approximate and are included to compare the proposed DC locations with real supermarket logistics patterns.
+        </p>
+
+        <div class="button-grid">
+          <button class="action-button action-button-primary" id="updateDCButton" type="button">
+            Update DC Locations
+          </button>
+          <button class="action-button" id="resetDCButton" type="button">
+            Reset Default DCs
+          </button>
+          <button class="action-button" id="fitSydneyButton" type="button">
+            Fit to Greater Sydney
+          </button>
+        </div>
+      </section>
+
+      <section class="sidebar-section" aria-label="Store coverage metrics">
+        <h2>Store Coverage</h2>
+        <p id="storeMetricsMessage" class="small-note">
+          Store coverage metrics will be available once store coordinates are added.
+        </p>
+        <div class="metrics-grid">
+          <div class="metric-row">
+            <span>Total stores</span>
+            <span class="metric-value" id="totalStoresMetric">0</span>
+          </div>
+          <div class="metric-row">
+            <span>Coverage by either DC</span>
+            <span class="metric-value" id="coverageMetric">n/a</span>
+          </div>
+          <div class="metric-row">
+            <span>Average nearest-DC distance</span>
+            <span class="metric-value" id="averageDistanceMetric">n/a</span>
+          </div>
+          <div class="metric-row">
+            <span>Maximum nearest-DC distance</span>
+            <span class="metric-value" id="maximumDistanceMetric">n/a</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="sidebar-section" aria-label="Layer controls">
+        <h2>Layer Controls</h2>
+        <label class="layer-toggle" for="greaterSydneyToggle">
+          <input id="greaterSydneyToggle" type="checkbox" checked>
+          <span>Show Greater Sydney boundary</span>
+        </label>
+        <label class="layer-toggle" for="lgaToggle">
+          <input id="lgaToggle" type="checkbox" checked>
+          <span>Show metropolitan LGA boundaries</span>
+        </label>
+        <label class="layer-toggle" for="sa3Toggle">
+          <input id="sa3Toggle" type="checkbox" checked>
+          <span>Show SA3 boundaries</span>
+        </label>
+        <label class="layer-toggle" for="sa2Toggle">
+          <input id="sa2Toggle" type="checkbox">
+          <span>Show SA2 boundaries</span>
+        </label>
+        <label class="layer-toggle" for="dcMarkerToggle">
+          <input id="dcMarkerToggle" type="checkbox" checked>
+          <span>Show proposed DC markers</span>
+        </label>
+        <label class="layer-toggle" for="coverageToggle">
+          <input id="coverageToggle" type="checkbox" checked>
+          <span>Show DC coverage circles</span>
+        </label>
+        <label class="layer-toggle" for="majorRoadsToggle">
+          <input id="majorRoadsToggle" type="checkbox" checked>
+          <span>Show major roads</span>
+        </label>
+        <label class="layer-toggle" for="majorRoadLabelsToggle">
+          <input id="majorRoadLabelsToggle" type="checkbox" checked>
+          <span>Show major road labels</span>
+        </label>
+        <label class="layer-toggle" for="freightEntryToggle">
+          <input id="freightEntryToggle" type="checkbox" checked>
+          <span>Show freight entry points</span>
+        </label>
+        <label class="layer-toggle" for="benchmarkToggle">
+          <input id="benchmarkToggle" type="checkbox">
+          <span>Show supermarket benchmark DCs</span>
+        </label>
+        <label class="layer-toggle" for="sampleStoresToggle">
+          <input id="sampleStoresToggle" type="checkbox">
+          <span>Show sample stores</span>
+        </label>
+        <div id="sa3StatusMessage" class="status-message" role="status" aria-live="polite">
+          Loading SA3 boundaries...
+        </div>
+        <div id="lgaStatusMessage" class="status-message" role="status" aria-live="polite">
+          Loading metropolitan LGA boundaries...
+        </div>
+        <div id="majorRoadsStatusMessage" class="status-message" role="status" aria-live="polite">
+          Loading major roads...
+        </div>
+        <div id="sa2StatusMessage" class="status-message" role="status" aria-live="polite">
+          SA2 boundaries are off by default.
+        </div>
+      </section>
+
+      <section class="sidebar-section" aria-label="Major roads layer summary">
+        <h2>Major Roads Layer Summary</h2>
+        <div class="metrics-grid">
+          <div class="metric-row">
+            <span>Total major road features</span>
+            <span class="metric-value" id="majorRoadsTotalMetric">0</span>
+          </div>
+          <div class="metric-row">
+            <span>Motorway features</span>
+            <span class="metric-value" id="majorRoadsMotorwayMetric">0</span>
+          </div>
+          <div class="metric-row">
+            <span>Trunk road features</span>
+            <span class="metric-value" id="majorRoadsTrunkMetric">0</span>
+          </div>
+          <div class="metric-row">
+            <span>Primary arterial features</span>
+            <span class="metric-value" id="majorRoadsPrimaryMetric">0</span>
+          </div>
+          <div class="metric-row">
+            <span>Key freight road features</span>
+            <span class="metric-value" id="majorRoadsKeyMetric">0</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="sidebar-section" aria-label="Map legend">
+        <h2>Legend</h2>
+        <ul class="legend-list">
+          <li class="legend-item">
+            <span class="legend-fill"></span>
+            <span>Greater Sydney boundary</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-fill" style="background:rgba(191,219,254,0.18);border-color:#1d4ed8"></span>
+            <span>Metropolitan LGA boundary</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-line" style="border-color:#4b5563;border-top-width:2px"></span>
+            <span>SA3 boundary</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-line" style="border-color:#9ca3af;border-top-width:1px"></span>
+            <span>SA2 boundary</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-dot" style="background:#dc2626"></span>
+            <span>DC 1 marker</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-dot" style="background:#7c3aed"></span>
+            <span>DC 2 marker</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-circle"></span>
+            <span>Coverage radius</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-line" style="border-color:#dc2626;border-top-width:5px"></span>
+            <span>Motorway</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-line" style="border-color:#ef4444;border-top-width:3px"></span>
+            <span>Motorway link</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-line" style="border-color:#f97316;border-top-width:4px"></span>
+            <span>Trunk road</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-line" style="border-color:#fb923c;border-top-width:2px"></span>
+            <span>Trunk link</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-line" style="border-color:#eab308;border-top-width:3px"></span>
+            <span>Primary arterial</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-line" style="border-color:#facc15;border-top-width:2px"></span>
+            <span>Primary link</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-line" style="border-color:#111827;border-top-width:6px"></span>
+            <span>Key freight road</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-dot" style="background:#1d4ed8;border-radius:4px"></span>
+            <span>Freight entry point / intermodal node</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-dot" style="background:#6b7280"></span>
+            <span>Supermarket benchmark DC</span>
+          </li>
+          <li class="legend-item">
+            <span class="legend-dot" style="background:#15803d"></span>
+            <span>Sample store</span>
+          </li>
+        </ul>
+      </section>
+    </aside>
+
+    <main class="map-wrap">
+      <div id="map" aria-label="Greater Sydney interactive map"></div>
+    </main>
+  </div>
+
+  <!-- Leaflet JavaScript from CDN -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script>
+    /*
+      Local data loading note:
+      The boundary layers use fetch() to load local GeoJSON files. Browser
+      security rules often block fetch() when this page is opened directly as
+      file://. Run a local server from this folder instead:
+
+        python3 -m http.server 8000
+
+      Then open:
+
+        http://localhost:8000
+    */
+
+    const gccsaDataPath = "data/gccsa.geojson";
+    const sa3DataPath = "data/sa3.geojson";
+    const sa2DataPath = "data/sa2.geojson";
+    const lgaDataPath = "data/lga.geojson";
+    const majorRoadsDataPath = "data/major_roads.geojson";
+    const KEY_FREIGHT_ROAD_TERMS = [
+      "M4",
+      "M5",
+      "M7",
+      "M8",
+      "M1",
+      "M2",
+      "A3",
+      "A6",
+      "Hume Motorway",
+      "Great Western Highway",
+      "Princes Highway",
+      "WestConnex",
+      "Western Distributor",
+      "Southern Cross Drive",
+      "Foreshore Road"
+    ];
+    const majorRoadLabelPoints = [
+      { label: "M4", lat: -33.8050, lng: 150.9600, fclass: "motorway" },
+      { label: "M5", lat: -33.9350, lng: 151.0300, fclass: "motorway" },
+      { label: "M7", lat: -33.8150, lng: 150.8520, fclass: "motorway" },
+      { label: "M8", lat: -33.9200, lng: 151.1500, fclass: "motorway" },
+      { label: "M1", lat: -33.7500, lng: 151.1000, fclass: "motorway" },
+      { label: "M2", lat: -33.7450, lng: 151.0450, fclass: "motorway" },
+      { label: "A3", lat: -33.8700, lng: 151.0950, fclass: "primary" },
+      { label: "A6", lat: -33.9000, lng: 150.9950, fclass: "primary" }
+    ];
+    const SYDNEY_METRO_LGAS = [
+      "Bayside",
+      "Blacktown",
+      "Blue Mountains",
+      "Burwood",
+      "Camden",
+      "Campbelltown",
+      "Canada Bay",
+      "Canterbury-Bankstown",
+      "Cumberland",
+      "Fairfield",
+      "Georges River",
+      "Hawkesbury",
+      "Hornsby",
+      "Hunters Hill",
+      "Inner West",
+      "Ku-ring-gai",
+      "Lane Cove",
+      "Liverpool",
+      "Mosman",
+      "Northern Beaches",
+      "North Sydney",
+      "Parramatta",
+      "Penrith",
+      "Randwick",
+      "Ryde",
+      "Strathfield",
+      "Sutherland Shire",
+      "Sydney",
+      "The Hills Shire",
+      "Waverley",
+      "Willoughby",
+      "Wollondilly",
+      "Woollahra"
+    ];
+    const gccsaNameFields = [
+      "GCCSA_NAME21",
+      "GCC_NAME21",
+      "GCCSA_NAME",
+      "name",
+      "NAME"
+    ];
+    const gccsaCodeFields = [
+      "GCCSA_CODE21",
+      "GCC_CODE21",
+      "GCCSA_CODE",
+      "GCC_CODE"
+    ];
+    const sa3MembershipFields = [
+      "GCCSA_NAME21",
+      "GCC_NAME21",
+      "GCCSA_NAME",
+      "GCCSA_CODE21",
+      "GCC_CODE21"
+    ];
+    const sa3NameFields = [
+      "SA3_NAME21",
+      "SA3_NAME",
+      "NAME",
+      "name"
+    ];
+    const sa3CodeFields = [
+      "SA3_CODE21",
+      "SA3_CODE"
+    ];
+    const sa2MembershipFields = [
+      "GCCSA_NAME21",
+      "GCC_NAME21",
+      "GCCSA_NAME",
+      "GCCSA_CODE21",
+      "GCC_CODE21"
+    ];
+    const sa2NameFields = [
+      "SA2_NAME21",
+      "SA2_NAME",
+      "NAME",
+      "name"
+    ];
+    const sa2CodeFields = [
+      "SA2_CODE21",
+      "SA2_CODE"
+    ];
+    const lgaNameFields = [
+      "LGA_NAME21",
+      "LGA_NAME24",
+      "LGA_NAME25",
+      "LGA_NAME",
+      "lga_name",
+      "name",
+      "council_name"
+    ];
+    const lgaStateFields = [
+      "STE_NAME21",
+      "STATE_NAME",
+      "state_name",
+      "state"
+    ];
+    const lgaStateCodeFields = [
+      "STE_CODE21",
+      "STATE_CODE",
+      "state_code"
+    ];
+    const normalizedSydneyMetroLGAs = new Set(
+      SYDNEY_METRO_LGAS.map((lgaName) => normalizeLGAName(lgaName))
+    );
+    const dcPresets = [
+      {
+        name: "Moorebank / Prestons",
+        lat: -33.9430,
+        lng: 150.9180
+      },
+      {
+        name: "Eastern Creek / Erskine Park",
+        lat: -33.8130,
+        lng: 150.8520
+      },
+      {
+        name: "Wetherill Park / Horsley Park",
+        lat: -33.8440,
+        lng: 150.8830
+      },
+      {
+        name: "Kemps Creek",
+        lat: -33.8800,
+        lng: 150.7870
+      },
+      {
+        name: "Banksmeadow / Port Botany",
+        lat: -33.9500,
+        lng: 151.2130
+      },
+      {
+        name: "Minchinbury",
+        lat: -33.7850,
+        lng: 150.8330
+      },
+      {
+        name: "Bradfield / Western Sydney Aerotropolis",
+        lat: -33.8840,
+        lng: 150.7450
+      }
+    ];
+    const defaultDCs = [
+      {
+        id: "dc1",
+        shortLabel: "DC1",
+        name: "DC 1: Moorebank / Prestons",
+        lat: -33.9430,
+        lng: 150.9180,
+        radiusKm: 35,
+        color: "#dc2626",
+        fillColor: "#fecaca",
+        markerClass: "dc-marker-red",
+        role: "Main intermodal and import-linked DC for containers, refrigerated imports, and southern/south-western store replenishment."
+      },
+      {
+        id: "dc2",
+        shortLabel: "DC2",
+        name: "DC 2: Eastern Creek / Erskine Park",
+        lat: -33.8130,
+        lng: 150.8520,
+        radiusKm: 35,
+        color: "#7c3aed",
+        fillColor: "#ddd6fe",
+        markerClass: "dc-marker-purple",
+        role: "Western and north-western DC with strong cold-chain potential and M4/M7 motorway access."
+      }
+    ];
+    const proposedDCs = defaultDCs.map((dc) => ({ ...dc }));
+    const freightEntryPoints = [
+      {
+        name: "Port Botany",
+        label: "PORT",
+        lat: -33.9700,
+        lng: 151.2200,
+        type: "Seaport / container freight entry point",
+        popup: "Port Botany is the main container port for imported non-perishables and refrigerated containers."
+      },
+      {
+        name: "Sydney Airport",
+        label: "AIR",
+        lat: -33.9399,
+        lng: 151.1753,
+        type: "Air freight entry point",
+        popup: "Sydney Airport supports air-freighted perishables and time-sensitive products."
+      },
+      {
+        name: "Moorebank Intermodal Precinct",
+        label: "MIT",
+        lat: -33.9360,
+        lng: 150.9270,
+        type: "Intermodal freight node",
+        popup: "Moorebank Intermodal Precinct provides port-linked rail access and supports containerised inbound freight."
+      }
+    ];
+    const benchmarkDCs = [
+      {
+        location: "Woolworths Moorebank DC",
+        lat: -33.9360,
+        lng: 150.9270,
+        company: "Woolworths",
+        type: "Automated / regional distribution centre benchmark"
+      },
+      {
+        location: "Woolworths Eastern Creek Chilled / Fresh DC",
+        lat: -33.8140,
+        lng: 150.8550,
+        company: "Woolworths",
+        type: "Chilled and fresh distribution benchmark"
+      },
+      {
+        location: "Coles Eastern Creek Chilled DC",
+        lat: -33.8080,
+        lng: 150.8600,
+        company: "Coles",
+        type: "Chilled distribution centre benchmark"
+      },
+      {
+        location: "ALDI Prestons DC",
+        lat: -33.9470,
+        lng: 150.8750,
+        company: "ALDI",
+        type: "Southern Sydney distribution benchmark"
+      },
+      {
+        location: "ALDI Minchinbury facility",
+        lat: -33.7850,
+        lng: 150.8330,
+        company: "ALDI",
+        type: "Western Sydney distribution benchmark"
+      },
+      {
+        location: "ALDI Bradfield / Western Sydney Aerotropolis future facility",
+        lat: -33.8840,
+        lng: 150.7450,
+        company: "ALDI",
+        type: "Future automated distribution benchmark"
+      }
+    ];
+    let storePoints = [];
+    const sampleStorePoints = [
+      { id: "S01", name: "Sample Store 01 - Sydney CBD", lat: -33.8688, lng: 151.2093 },
+      { id: "S02", name: "Sample Store 02 - Parramatta", lat: -33.8150, lng: 151.0011 },
+      { id: "S03", name: "Sample Store 03 - Penrith", lat: -33.7510, lng: 150.6940 },
+      { id: "S04", name: "Sample Store 04 - Blacktown", lat: -33.7710, lng: 150.9070 },
+      { id: "S05", name: "Sample Store 05 - Castle Hill", lat: -33.7310, lng: 151.0060 },
+      { id: "S06", name: "Sample Store 06 - Hornsby", lat: -33.7030, lng: 151.1000 },
+      { id: "S07", name: "Sample Store 07 - Chatswood", lat: -33.7970, lng: 151.1800 },
+      { id: "S08", name: "Sample Store 08 - Bondi Junction", lat: -33.8910, lng: 151.2500 },
+      { id: "S09", name: "Sample Store 09 - Hurstville", lat: -33.9670, lng: 151.1020 },
+      { id: "S10", name: "Sample Store 10 - Miranda", lat: -34.0340, lng: 151.1010 },
+      { id: "S11", name: "Sample Store 11 - Bankstown", lat: -33.9180, lng: 151.0340 },
+      { id: "S12", name: "Sample Store 12 - Liverpool", lat: -33.9200, lng: 150.9230 },
+      { id: "S13", name: "Sample Store 13 - Campbelltown", lat: -34.0660, lng: 150.8140 },
+      { id: "S14", name: "Sample Store 14 - Camden", lat: -34.0540, lng: 150.6960 },
+      { id: "S15", name: "Sample Store 15 - Fairfield", lat: -33.8720, lng: 150.9550 },
+      { id: "S16", name: "Sample Store 16 - Ryde", lat: -33.8130, lng: 151.1070 },
+      { id: "S17", name: "Sample Store 17 - Dee Why", lat: -33.7530, lng: 151.2850 },
+      { id: "S18", name: "Sample Store 18 - Richmond", lat: -33.6000, lng: 150.7540 },
+      { id: "S19", name: "Sample Store 19 - Kogarah", lat: -33.9630, lng: 151.1350 },
+      { id: "S20", name: "Sample Store 20 - Burwood", lat: -33.8770, lng: 151.1030 }
+    ];
+
+    let greaterSydneyBounds = null;
+    let dcLayersLogged = false;
+
+    // Create the Leaflet map and set the initial Greater Sydney view.
+    const map = L.map("map", {
+      zoomControl: true
+    }).setView([-33.86, 151.05], 9);
+
+    // Add the CartoDB Positron basemap. This avoids relying directly on
+    // the default OpenStreetMap tile server for local HTML presentations.
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+      attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      subdomains: "abcd",
+      maxZoom: 19
+    }).addTo(map);
+
+    // Panes keep regional context below the main metropolitan boundary.
+    map.createPane("sa2Pane");
+    map.getPane("sa2Pane").style.zIndex = 405;
+    map.createPane("sa3Pane");
+    map.getPane("sa3Pane").style.zIndex = 410;
+    map.createPane("dcCoveragePane");
+    map.getPane("dcCoveragePane").style.zIndex = 415;
+    map.getPane("dcCoveragePane").style.pointerEvents = "none";
+    map.createPane("lgaPane");
+    map.getPane("lgaPane").style.zIndex = 418;
+    map.createPane("gccsaPane");
+    map.getPane("gccsaPane").style.zIndex = 420;
+    map.createPane("majorRoadsPane");
+    map.getPane("majorRoadsPane").style.zIndex = 432;
+    map.createPane("majorRoadLabelsPane");
+    map.getPane("majorRoadLabelsPane").style.zIndex = 642;
+    map.createPane("freightEntryPane");
+    map.getPane("freightEntryPane").style.zIndex = 645;
+    map.createPane("dcMarkerPane");
+    map.getPane("dcMarkerPane").style.zIndex = 650;
+    map.createPane("benchmarkPane");
+    map.getPane("benchmarkPane").style.zIndex = 635;
+    map.createPane("storePane");
+    map.getPane("storePane").style.zIndex = 632;
+
+    const detailRenderer = L.canvas({
+      padding: 0.5,
+      pane: "sa2Pane"
+    });
+    const majorRoadsRenderer = L.canvas({
+      padding: 0.5,
+      pane: "majorRoadsPane"
+    });
+    const greaterSydneyLayerGroup = L.layerGroup().addTo(map);
+    const lgaLayerGroup = L.layerGroup().addTo(map);
+    const sa3LayerGroup = L.layerGroup().addTo(map);
+    const sa2LayerGroup = L.layerGroup();
+    const dcCoverageLayerGroup = L.layerGroup().addTo(map);
+    const dcMarkerLayerGroup = L.layerGroup().addTo(map);
+    const majorRoadsLayerGroup = L.layerGroup().addTo(map);
+    const majorRoadLabelsLayerGroup = L.layerGroup().addTo(map);
+    const freightEntryLayerGroup = L.layerGroup().addTo(map);
+    const benchmarkLayerGroup = L.layerGroup();
+    const sampleStoreLayerGroup = L.layerGroup();
+
+    // Update the sidebar with the current boundary loading state.
+    function updateStatus(message) {
+      const statusMessage = document.getElementById("statusMessage");
+      statusMessage.textContent = message;
+      statusMessage.classList.toggle("error", message.toLowerCase().startsWith("error:"));
+    }
+
+    // Update the SA3-specific sidebar status.
+    function updateSA3Status(message) {
+      const statusMessage = document.getElementById("sa3StatusMessage");
+      statusMessage.textContent = message;
+      statusMessage.classList.toggle("error", message.toLowerCase().startsWith("error:"));
+    }
+
+    // Update the LGA-specific sidebar status.
+    function updateLGAStatus(message) {
+      const statusMessage = document.getElementById("lgaStatusMessage");
+      statusMessage.textContent = message;
+      statusMessage.classList.toggle("error", message.toLowerCase().startsWith("error:"));
+    }
+
+    // Update the major roads-specific sidebar status.
+    function updateMajorRoadsStatus(message) {
+      const statusMessage = document.getElementById("majorRoadsStatusMessage");
+      statusMessage.textContent = message;
+      statusMessage.classList.toggle("error", message.toLowerCase().startsWith("error:"));
+    }
+
+    // Update the SA2-specific sidebar status.
+    function updateSA2Status(message) {
+      const statusMessage = document.getElementById("sa2StatusMessage");
+      statusMessage.textContent = message;
+      statusMessage.classList.toggle("error", message.toLowerCase().startsWith("error:"));
+    }
+
+    // Find the first matching name field, allowing for minor case variations.
+    function findNameProperty(feature, possibleFields) {
+      const properties = feature.properties || {};
+
+      for (const field of possibleFields) {
+        if (
+          properties[field] !== undefined &&
+          properties[field] !== null &&
+          String(properties[field]).trim() !== ""
+        ) {
+          return field;
+        }
+      }
+
+      const propertyKeys = Object.keys(properties);
+      return propertyKeys.find((key) =>
+        possibleFields.some((field) => field.toLowerCase() === key.toLowerCase()) &&
+        String(properties[key]).trim() !== ""
+      );
+    }
+
+    // Read a property from a feature after detecting the likely field name.
+    function getFeatureValue(feature, possibleFields) {
+      const propertyName = findNameProperty(feature, possibleFields);
+      return propertyName ? feature.properties[propertyName] : "";
+    }
+
+    // Standardise LGA labels from ABS files and council-style source names.
+    function normalizeLGAName(value) {
+      return String(value || "")
+        .normalize("NFKD")
+        .replace(/[‐‑‒–—]/g, "-")
+        .replace(/\([^)]*\)/g, " ")
+        .replace(/\bcity council\b/gi, " ")
+        .replace(/\bshire council\b/gi, " ")
+        .replace(/\bmunicipal council\b/gi, " ")
+        .replace(/\bmunicipality\b/gi, " ")
+        .replace(/\bcouncil\b/gi, " ")
+        .replace(/\bshire\b/gi, " ")
+        .replace(/\bcity of\b/gi, " ")
+        .replace(/[^a-z0-9-]+/gi, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
+    }
+
+    // If a national LGA file is supplied, keep NSW records and avoid duplicate names in other states.
+    function isNSWLGAFeature(feature) {
+      const stateName = String(getFeatureValue(feature, lgaStateFields)).toLowerCase();
+      const stateCode = String(getFeatureValue(feature, lgaStateCodeFields)).toLowerCase();
+
+      if (!stateName && !stateCode) {
+        return true;
+      }
+
+      return (
+        stateName.includes("new south wales") ||
+        stateName === "nsw" ||
+        stateCode === "1"
+      );
+    }
+
+    // Check whether a feature belongs to the presentation metropolitan LGA set.
+    function isSydneyMetroLGA(feature) {
+      const lgaName = getFeatureValue(feature, lgaNameFields);
+      return isNSWLGAFeature(feature) && normalizedSydneyMetroLGAs.has(normalizeLGAName(lgaName));
+    }
+
+    // Treat either the Greater Sydney name or standard 2021 GCCSA code as a match.
+    function isGreaterSydneyMembership(feature) {
+      const membershipValue = String(getFeatureValue(feature, sa3MembershipFields)).toLowerCase();
+      return membershipValue.includes("greater sydney") || membershipValue.includes("1gsyd");
+    }
+
+    // Reuse the same Greater Sydney membership logic for detailed SA2 features.
+    function isGreaterSydneySA2Membership(feature) {
+      const membershipValue = String(getFeatureValue(feature, sa2MembershipFields)).toLowerCase();
+      return membershipValue.includes("greater sydney") || membershipValue.includes("1gsyd");
+    }
+
+    // Keep popup text safe and lightweight.
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    // Convert either a FeatureCollection or a single Feature into a clean feature array.
+    function getGeoJsonFeatures(geoJson) {
+      if (!geoJson || !geoJson.type) {
+        throw new Error("Invalid GeoJSON object.");
+      }
+
+      const features = geoJson.type === "FeatureCollection" ? geoJson.features : [geoJson];
+      return features.filter((feature) => feature && feature.type === "Feature" && feature.geometry);
+    }
+
+    // Fit to the loaded Greater Sydney boundary, or use the default view if not loaded.
+    function fitToGreaterSydney() {
+      if (greaterSydneyBounds && greaterSydneyBounds.isValid()) {
+        map.fitBounds(greaterSydneyBounds, {
+          padding: [24, 24]
+        });
+      } else {
+        map.setView([-33.86, 151.05], 9);
+      }
+    }
+
+    // Create a large, coloured marker icon for each proposed DC.
+    function createDCIcon(dc) {
+      return L.divIcon({
+        className: "",
+        html: `<div class="dc-marker ${dc.markerClass}">${escapeHtml(dc.shortLabel)}</div>`,
+        iconSize: [46, 46],
+        iconAnchor: [23, 23],
+        popupAnchor: [0, -22]
+      });
+    }
+
+    // Build the DC marker popup content from the current DC state.
+    function createDCPopup(dc) {
+      return `
+        <p class="popup-title">${escapeHtml(dc.name)}</p>
+        <table class="popup-table">
+          <tr><td>Latitude</td><td>${dc.lat.toFixed(4)}</td></tr>
+          <tr><td>Longitude</td><td>${dc.lng.toFixed(4)}</td></tr>
+          <tr><td>Radius</td><td>${dc.radiusKm.toFixed(0)} km</td></tr>
+          <tr><td>Role</td><td>${escapeHtml(dc.role)}</td></tr>
+        </table>
+      `;
+    }
+
+    // Classify major roads into the presentation categories used in the summary.
+    function getMajorRoadGroup(feature) {
+      const properties = feature.properties || {};
+      const fclass = String(properties.fclass || "").toLowerCase();
+      const roadGroup = String(properties.road_group || "").toLowerCase();
+
+      if (fclass.includes("motorway") || roadGroup.includes("motorway")) {
+        return "Motorway";
+      }
+
+      if (fclass.includes("trunk") || roadGroup.includes("trunk")) {
+        return "Trunk road";
+      }
+
+      return "Primary arterial";
+    }
+
+    // Identify important freight routes without labelling every road.
+    function isKeyFreightRoad(feature) {
+      const properties = feature.properties || {};
+      const candidateText = [
+        properties.display_name,
+        properties.ref,
+        properties.name
+      ].filter(Boolean).join(" ").toUpperCase();
+
+      return KEY_FREIGHT_ROAD_TERMS.some((term) => {
+        const upperTerm = term.toUpperCase();
+
+        if (/^[AM]\d+$/.test(upperTerm)) {
+          return new RegExp(`(^|[^A-Z0-9])${upperTerm}([^A-Z0-9]|$)`).test(candidateText);
+        }
+
+        return candidateText.includes(upperTerm);
+      });
+    }
+
+    // Style roads by OSM fclass with a clear hierarchy for main and link roads.
+    function styleMajorRoad(feature) {
+      const properties = feature.properties || {};
+      const fclass = String(properties.fclass || "").toLowerCase();
+      const styleByClass = {
+        motorway: {
+          color: "#dc2626",
+          weight: 4.2,
+          opacity: 0.95,
+          lineCap: "round",
+          lineJoin: "round"
+        },
+        motorway_link: {
+          color: "#ef4444",
+          weight: 2.8,
+          opacity: 0.75,
+          lineCap: "round",
+          lineJoin: "round"
+        },
+        trunk: {
+          color: "#f97316",
+          weight: 3.5,
+          opacity: 0.9,
+          lineCap: "round",
+          lineJoin: "round"
+        },
+        trunk_link: {
+          color: "#fb923c",
+          weight: 2.4,
+          opacity: 0.7,
+          lineCap: "round",
+          lineJoin: "round"
+        },
+        primary: {
+          color: "#eab308",
+          weight: 2.8,
+          opacity: 0.85,
+          lineCap: "round",
+          lineJoin: "round"
+        },
+        primary_link: {
+          color: "#facc15",
+          weight: 1.9,
+          opacity: 0.65,
+          lineCap: "round",
+          lineJoin: "round"
+        }
+      };
+      const style = { ...(styleByClass[fclass] || {
+        color: "#64748b",
+        weight: 1.5,
+        opacity: 0.6,
+        lineCap: "round",
+        lineJoin: "round"
+      }) };
+
+      if (isKeyFreightRoad(feature)) {
+        style.weight += 1;
+        style.opacity = Math.max(style.opacity, 0.95);
+      }
+
+      return style;
+    }
+
+    // Build hover styling without changing the base fclass hierarchy.
+    function styleMajorRoadHover(feature) {
+      const baseStyle = styleMajorRoad(feature);
+
+      return {
+        ...baseStyle,
+        weight: baseStyle.weight + 1.5,
+        opacity: 1
+      };
+    }
+
+    // Build major road popup content from the prepared GeoJSON fields.
+    function createMajorRoadPopup(feature) {
+      const properties = feature.properties || {};
+      const displayName = properties.display_name || properties.ref || properties.name || properties.fclass || "Major road";
+      const maxspeed = properties.maxspeed !== undefined && properties.maxspeed !== null && String(properties.maxspeed).trim() !== ""
+        ? properties.maxspeed
+        : "Not available";
+
+      return `
+        <p class="popup-title">${escapeHtml(displayName)}</p>
+        <table class="popup-table">
+          <tr><td>Display name</td><td>${escapeHtml(displayName)}</td></tr>
+          <tr><td>Road name</td><td>${escapeHtml(properties.name || "Not available")}</td></tr>
+          <tr><td>Road ref</td><td>${escapeHtml(properties.ref || "Not available")}</td></tr>
+          <tr><td>Road class</td><td>${escapeHtml(properties.fclass || "Not available")}</td></tr>
+          <tr><td>Road group</td><td>${escapeHtml(properties.road_group || getMajorRoadGroup(feature))}</td></tr>
+          <tr><td>Max speed</td><td>${escapeHtml(maxspeed)}</td></tr>
+          <tr><td>Bridge</td><td>${escapeHtml(properties.bridge || "Not available")}</td></tr>
+          <tr><td>Tunnel</td><td>${escapeHtml(properties.tunnel || "Not available")}</td></tr>
+          <tr><td>Source</td><td>OpenStreetMap / Geofabrik roads</td></tr>
+        </table>
+      `;
+    }
+
+    // Add fixed labels for the key freight road references only.
+    function loadMajorRoadLabels() {
+      majorRoadLabelsLayerGroup.clearLayers();
+
+      majorRoadLabelPoints.forEach((roadLabel) => {
+        const style = styleMajorRoad({
+          properties: {
+            fclass: roadLabel.fclass,
+            display_name: roadLabel.label,
+            ref: roadLabel.label
+          }
+        });
+
+        L.marker([roadLabel.lat, roadLabel.lng], {
+          pane: "majorRoadLabelsPane",
+          interactive: false,
+          icon: L.divIcon({
+            className: "",
+            html: `<div class="road-label" style="border-color:${style.color}">${escapeHtml(roadLabel.label)}</div>`,
+            iconSize: [36, 22],
+            iconAnchor: [18, 11]
+          })
+        }).addTo(majorRoadLabelsLayerGroup);
+      });
+    }
+
+    // Keep road labels optional and tied to the visibility of the road layer.
+    function syncMajorRoadLabelVisibility() {
+      const labelsToggle = document.getElementById("majorRoadLabelsToggle");
+      const roadsToggle = document.getElementById("majorRoadsToggle");
+      const shouldShowLabels = labelsToggle.checked && roadsToggle.checked;
+
+      if (shouldShowLabels) {
+        map.addLayer(majorRoadLabelsLayerGroup);
+      } else {
+        map.removeLayer(majorRoadLabelsLayerGroup);
+      }
+    }
+
+    // Summarise the major roads layer in the sidebar.
+    function updateMajorRoadsSummary(features) {
+      const summary = {
+        total: features.length,
+        motorway: 0,
+        trunk: 0,
+        primary: 0,
+        key: 0
+      };
+
+      features.forEach((feature) => {
+        const group = getMajorRoadGroup(feature);
+        if (group === "Motorway") {
+          summary.motorway += 1;
+        } else if (group === "Trunk road") {
+          summary.trunk += 1;
+        } else {
+          summary.primary += 1;
+        }
+
+        if (isKeyFreightRoad(feature)) {
+          summary.key += 1;
+        }
+      });
+
+      document.getElementById("majorRoadsTotalMetric").textContent = summary.total.toLocaleString();
+      document.getElementById("majorRoadsMotorwayMetric").textContent = summary.motorway.toLocaleString();
+      document.getElementById("majorRoadsTrunkMetric").textContent = summary.trunk.toLocaleString();
+      document.getElementById("majorRoadsPrimaryMetric").textContent = summary.primary.toLocaleString();
+      document.getElementById("majorRoadsKeyMetric").textContent = summary.key.toLocaleString();
+    }
+
+    // Load clean major roads from the prepared Greater Sydney GeoJSON.
+    async function loadMajorRoads() {
+      try {
+        updateMajorRoadsStatus("Loading major roads...");
+
+        const response = await fetch(majorRoadsDataPath);
+        if (!response.ok) {
+          throw new Error(`Could not load ${majorRoadsDataPath}`);
+        }
+
+        const majorRoadsGeoJson = await response.json();
+        const features = getGeoJsonFeatures(majorRoadsGeoJson);
+
+        if (features.length === 0) {
+          updateMajorRoadsStatus("Error: data/major_roads.geojson does not contain valid road features.");
+          console.error("Major roads GeoJSON loaded, but no valid features were found.");
+          return;
+        }
+
+        const majorRoadsLayer = L.geoJSON({
+          type: "FeatureCollection",
+          features
+        }, {
+          pane: "majorRoadsPane",
+          renderer: majorRoadsRenderer,
+          style: (feature) => styleMajorRoad(feature),
+          onEachFeature: (feature, layer) => {
+            layer.bindPopup(createMajorRoadPopup(feature));
+            if (isKeyFreightRoad(feature)) {
+              layer.on("add", () => {
+                if (layer.bringToFront) {
+                  layer.bringToFront();
+                }
+              });
+            }
+            layer.on({
+              mouseover: () => {
+                layer.setStyle(styleMajorRoadHover(feature));
+                if (layer.bringToFront) {
+                  layer.bringToFront();
+                }
+              },
+              mouseout: () => {
+                layer.setStyle(styleMajorRoad(feature));
+              }
+            });
+          }
+        });
+
+        majorRoadsLayerGroup.clearLayers();
+        majorRoadsLayer.addTo(majorRoadsLayerGroup);
+        loadMajorRoadLabels();
+        syncMajorRoadLabelVisibility();
+        updateMajorRoadsSummary(features);
+        updateMajorRoadsStatus(`${features.length.toLocaleString()} major road features loaded.`);
+        console.log(`Loaded ${features.length} major road features from data/major_roads.geojson.`);
+      } catch (error) {
+        console.error("Failed to load major roads GeoJSON:", error);
+        updateMajorRoadsStatus("Error: data/major_roads.geojson could not be loaded. Confirm the file exists and open this page through a local server.");
+      }
+    }
+
+    // Add key freight gateways and intermodal nodes as distinct map markers.
+    function loadFreightEntryPoints() {
+      freightEntryLayerGroup.clearLayers();
+
+      freightEntryPoints.forEach((entryPoint) => {
+        const marker = L.marker([entryPoint.lat, entryPoint.lng], {
+          pane: "freightEntryPane",
+          title: entryPoint.name,
+          icon: L.divIcon({
+            className: "",
+            html: `<div class="entry-marker">${escapeHtml(entryPoint.label)}</div>`,
+            iconSize: [44, 34],
+            iconAnchor: [22, 17],
+            popupAnchor: [0, -16]
+          })
+        }).addTo(freightEntryLayerGroup);
+
+        marker.bindPopup(`
+          <p class="popup-title">${escapeHtml(entryPoint.name)}</p>
+          <table class="popup-table">
+            <tr><td>Type</td><td>${escapeHtml(entryPoint.type)}</td></tr>
+            <tr><td>Role</td><td>${escapeHtml(entryPoint.popup)}</td></tr>
+          </table>
+        `);
+      });
+
+      console.log(`Loaded ${freightEntryPoints.length} freight entry points.`);
+    }
+
+    // Add optional real-world supermarket logistics benchmarks.
+    function loadBenchmarkDCs() {
+      benchmarkLayerGroup.clearLayers();
+
+      benchmarkDCs.forEach((benchmark) => {
+        const marker = L.marker([benchmark.lat, benchmark.lng], {
+          pane: "benchmarkPane",
+          title: benchmark.location,
+          icon: L.divIcon({
+            className: "",
+            html: '<div class="benchmark-marker"></div>',
+            iconSize: [20, 20],
+            iconAnchor: [10, 10],
+            popupAnchor: [0, -10]
+          })
+        }).addTo(benchmarkLayerGroup);
+
+        marker.bindPopup(`
+          <p class="popup-title">${escapeHtml(benchmark.location)}</p>
+          <table class="popup-table">
+            <tr><td>Company</td><td>${escapeHtml(benchmark.company)}</td></tr>
+            <tr><td>Location</td><td>${escapeHtml(benchmark.location)}</td></tr>
+            <tr><td>Relevance</td><td>${escapeHtml(benchmark.type)}</td></tr>
+          </table>
+        `);
+      });
+
+      console.log(`Loaded ${benchmarkDCs.length} supermarket benchmark DCs.`);
+    }
+
+    // Calculate great-circle distance between two latitude/longitude points.
+    function haversineDistanceKm(lat1, lng1, lat2, lng2) {
+      const earthRadiusKm = 6371.0088;
+      const toRadians = (degrees) => degrees * Math.PI / 180;
+      const deltaLat = toRadians(lat2 - lat1);
+      const deltaLng = toRadians(lng2 - lng1);
+      const lat1Radians = toRadians(lat1);
+      const lat2Radians = toRadians(lat2);
+      const a = Math.sin(deltaLat / 2) ** 2 +
+        Math.cos(lat1Radians) * Math.cos(lat2Radians) *
+        Math.sin(deltaLng / 2) ** 2;
+
+      return 2 * earthRadiusKm * Math.asin(Math.min(1, Math.sqrt(a)));
+    }
+
+    // Update the metrics panel from the current storePoints array.
+    function calculateCoverageMetrics() {
+      const metricsMessage = document.getElementById("storeMetricsMessage");
+      const totalStoresMetric = document.getElementById("totalStoresMetric");
+      const coverageMetric = document.getElementById("coverageMetric");
+      const averageDistanceMetric = document.getElementById("averageDistanceMetric");
+      const maximumDistanceMetric = document.getElementById("maximumDistanceMetric");
+
+      if (storePoints.length === 0) {
+        metricsMessage.textContent = "Store coverage metrics will be available once store coordinates are added.";
+        totalStoresMetric.textContent = "0";
+        coverageMetric.textContent = "n/a";
+        averageDistanceMetric.textContent = "n/a";
+        maximumDistanceMetric.textContent = "n/a";
+        return;
+      }
+
+      let coveredStoreCount = 0;
+      let totalNearestDistanceKm = 0;
+      let maximumNearestDistanceKm = 0;
+
+      storePoints.forEach((store) => {
+        const distances = proposedDCs.map((dc) =>
+          haversineDistanceKm(store.lat, store.lng, dc.lat, dc.lng)
+        );
+        const nearestDistanceKm = Math.min(...distances);
+        const isCovered = proposedDCs.some((dc, index) => distances[index] <= dc.radiusKm);
+
+        if (isCovered) {
+          coveredStoreCount += 1;
+        }
+
+        totalNearestDistanceKm += nearestDistanceKm;
+        maximumNearestDistanceKm = Math.max(maximumNearestDistanceKm, nearestDistanceKm);
+      });
+
+      const coveragePercent = coveredStoreCount / storePoints.length * 100;
+      const averageNearestDistanceKm = totalNearestDistanceKm / storePoints.length;
+
+      metricsMessage.textContent = "Coverage metrics are calculated using the currently active store point set.";
+      totalStoresMetric.textContent = String(storePoints.length);
+      coverageMetric.textContent = `${coveragePercent.toFixed(1)}%`;
+      averageDistanceMetric.textContent = `${averageNearestDistanceKm.toFixed(1)} km`;
+      maximumDistanceMetric.textContent = `${maximumNearestDistanceKm.toFixed(1)} km`;
+    }
+
+    // Render optional sample stores. Replace sampleStorePoints with real stores later.
+    function loadSampleStores() {
+      sampleStoreLayerGroup.clearLayers();
+
+      sampleStorePoints.forEach((store) => {
+        const marker = L.circleMarker([store.lat, store.lng], {
+          pane: "storePane",
+          radius: 4,
+          color: "#ffffff",
+          weight: 1,
+          fillColor: "#15803d",
+          fillOpacity: 0.95
+        }).addTo(sampleStoreLayerGroup);
+
+        marker.bindPopup(`
+          <p class="popup-title">${escapeHtml(store.name)}</p>
+          <table class="popup-table">
+            <tr><td>ID</td><td>${escapeHtml(store.id)}</td></tr>
+            <tr><td>Status</td><td>Sample store point</td></tr>
+          </table>
+        `);
+      });
+
+      console.log(`Loaded ${sampleStorePoints.length} optional sample store points.`);
+    }
+
+    // Sample stores are optional; real stores can later be assigned to storePoints.
+    function setSampleStoreVisibility(showSampleStores) {
+      if (showSampleStores) {
+        storePoints = sampleStorePoints.map((store) => ({ ...store }));
+        map.addLayer(sampleStoreLayerGroup);
+      } else {
+        storePoints = [];
+        map.removeLayer(sampleStoreLayerGroup);
+      }
+
+      calculateCoverageMetrics();
+    }
+
+    // Keep sidebar controls aligned with the current DC state.
+    function setDCInputValues() {
+      proposedDCs.forEach((dc) => {
+        document.getElementById(`${dc.id}Lat`).value = dc.lat.toFixed(4);
+        document.getElementById(`${dc.id}Lng`).value = dc.lng.toFixed(4);
+        document.getElementById(`${dc.id}Radius`).value = dc.radiusKm;
+        document.getElementById(`${dc.id}RadiusValue`).textContent = `${dc.radiusKm.toFixed(0)} km`;
+        setPresetSelectFromCoordinates(dc.id, dc.lat, dc.lng);
+      });
+    }
+
+    // Populate both preset dropdowns with the same planning location options.
+    function populatePresetSelectors() {
+      ["dc1", "dc2"].forEach((dcId) => {
+        const presetSelect = document.getElementById(`${dcId}Preset`);
+
+        dcPresets.forEach((preset, index) => {
+          const option = document.createElement("option");
+          option.value = String(index);
+          option.textContent = preset.name;
+          presetSelect.appendChild(option);
+        });
+      });
+    }
+
+    // Keep the dropdown aligned when reset defaults or typed coordinates match a preset.
+    function setPresetSelectFromCoordinates(dcId, lat, lng) {
+      const presetSelect = document.getElementById(`${dcId}Preset`);
+      const matchingIndex = dcPresets.findIndex((preset) =>
+        Math.abs(preset.lat - lat) < 0.00005 &&
+        Math.abs(preset.lng - lng) < 0.00005
+      );
+
+      if (matchingIndex >= 0) {
+        presetSelect.value = String(matchingIndex);
+      }
+    }
+
+    // Selecting a preset fills the inputs; the update button applies the move.
+    function applyPresetToInputs(dcId, presetIndex) {
+      const preset = dcPresets[Number(presetIndex)];
+      if (!preset) {
+        return;
+      }
+
+      document.getElementById(`${dcId}Lat`).value = preset.lat.toFixed(4);
+      document.getElementById(`${dcId}Lng`).value = preset.lng.toFixed(4);
+    }
+
+    // Update marker positions, circle centres, circle radii, and popups.
+    function updateDCLayers() {
+      proposedDCs.forEach((dc) => {
+        const latLng = [dc.lat, dc.lng];
+
+        if (!dc.marker) {
+          dc.marker = L.marker(latLng, {
+            icon: createDCIcon(dc),
+            pane: "dcMarkerPane",
+            title: dc.name
+          }).addTo(dcMarkerLayerGroup);
+        } else {
+          dc.marker.setLatLng(latLng);
+        }
+
+        if (!dc.circle) {
+          dc.circle = L.circle(latLng, {
+            pane: "dcCoveragePane",
+            radius: dc.radiusKm * 1000,
+            color: dc.color,
+            weight: 2,
+            opacity: 0.85,
+            fillColor: dc.fillColor,
+            fillOpacity: 0.2
+          }).addTo(dcCoverageLayerGroup);
+        } else {
+          dc.circle.setLatLng(latLng);
+          dc.circle.setRadius(dc.radiusKm * 1000);
+        }
+
+        dc.marker.setPopupContent(createDCPopup(dc));
+      });
+
+      if (!dcLayersLogged) {
+        console.log(`Loaded ${proposedDCs.length} proposed DC markers and coverage circles.`);
+        dcLayersLogged = true;
+      }
+
+      calculateCoverageMetrics();
+    }
+
+    // Read coordinate inputs only when the update button is clicked.
+    function applyDCCoordinateInputs() {
+      const nextValues = [];
+
+      for (const dc of proposedDCs) {
+        const latInput = document.getElementById(`${dc.id}Lat`);
+        const lngInput = document.getElementById(`${dc.id}Lng`);
+        const lat = Number(latInput.value);
+        const lng = Number(lngInput.value);
+
+        if (
+          latInput.value.trim() === "" ||
+          lngInput.value.trim() === "" ||
+          !Number.isFinite(lat) ||
+          !Number.isFinite(lng) ||
+          lat < -90 ||
+          lat > 90 ||
+          lng < -180 ||
+          lng > 180
+        ) {
+          alert("Please enter valid latitude and longitude values for both DCs.");
+          setDCInputValues();
+          return;
+        }
+
+        nextValues.push({ lat, lng });
+      }
+
+      proposedDCs.forEach((dc, index) => {
+        dc.lat = nextValues[index].lat;
+        dc.lng = nextValues[index].lng;
+      });
+
+      setDCInputValues();
+      updateDCLayers();
+    }
+
+    // Restore the two proposed DCs to the default planning scenario.
+    function resetDCs() {
+      defaultDCs.forEach((defaultDC, index) => {
+        proposedDCs[index].lat = defaultDC.lat;
+        proposedDCs[index].lng = defaultDC.lng;
+        proposedDCs[index].radiusKm = defaultDC.radiusKm;
+      });
+
+      setDCInputValues();
+      updateDCLayers();
+    }
+
+    // Load the GCCSA GeoJSON and display only the Greater Sydney feature.
+    async function loadGCCSA() {
+      try {
+        updateStatus("Loading Greater Sydney boundary...");
+
+        const response = await fetch(gccsaDataPath);
+        if (!response.ok) {
+          throw new Error(`Could not load ${gccsaDataPath}`);
+        }
+
+        const gccsaGeoJson = await response.json();
+        const features = getGeoJsonFeatures(gccsaGeoJson);
+
+        if (features.length === 0) {
+          updateStatus("Error: data/gccsa.geojson does not contain valid boundary features.");
+          console.error("GCCSA GeoJSON loaded, but no valid features were found.");
+          return;
+        }
+
+        const greaterSydneyFeature = features.find((feature) => {
+          const nameProperty = findNameProperty(feature, gccsaNameFields);
+          const codeProperty = findNameProperty(feature, gccsaCodeFields);
+          const nameValue = nameProperty ? feature.properties[nameProperty] : "";
+          const codeValue = codeProperty ? feature.properties[codeProperty] : "";
+          return (
+            String(nameValue).toLowerCase().includes("greater sydney") ||
+            String(codeValue).toLowerCase().includes("1gsyd")
+          );
+        });
+
+        if (!greaterSydneyFeature) {
+          updateStatus("Error: Greater Sydney could not be found in data/gccsa.geojson.");
+          console.error("Greater Sydney feature was not found in data/gccsa.geojson.");
+          return;
+        }
+
+        greaterSydneyLayerGroup.clearLayers();
+
+        const greaterSydneyLayer = L.geoJSON(greaterSydneyFeature, {
+          pane: "gccsaPane",
+          style: {
+            color: "#2563eb",
+            weight: 3,
+            opacity: 0.9,
+            fillColor: "#93c5fd",
+            fillOpacity: 0.18
+          }
+        }).addTo(greaterSydneyLayerGroup);
+
+        greaterSydneyLayer.bindPopup("Greater Sydney Metropolitan Area");
+        greaterSydneyBounds = greaterSydneyLayer.getBounds();
+        fitToGreaterSydney();
+
+        updateStatus("Greater Sydney boundary loaded successfully.");
+        console.log("Loaded Greater Sydney GCCSA boundary from data/gccsa.geojson.");
+      } catch (error) {
+        console.error("Failed to load GCCSA GeoJSON:", error);
+        updateStatus("Error: data/gccsa.geojson could not be loaded. Confirm the file exists and open this page through a local server.");
+      }
+    }
+
+    // Load Sydney metropolitan LGA boundaries as a presentation-friendly reference layer.
+    async function loadLGA() {
+      try {
+        updateLGAStatus("Loading metropolitan LGA boundaries...");
+
+        const response = await fetch(lgaDataPath);
+        if (!response.ok) {
+          throw new Error(`Could not load ${lgaDataPath}`);
+        }
+
+        const lgaGeoJson = await response.json();
+        const features = getGeoJsonFeatures(lgaGeoJson);
+
+        if (features.length === 0) {
+          updateLGAStatus("Error: data/lga.geojson does not contain valid LGA features.");
+          console.error("LGA GeoJSON loaded, but no valid features were found.");
+          return;
+        }
+
+        const selectedFeatures = features.filter(isSydneyMetroLGA);
+
+        if (selectedFeatures.length === 0) {
+          updateLGAStatus("Error: No Sydney metropolitan LGA features were found in data/lga.geojson.");
+          console.error("No LGA features matched the Sydney metropolitan LGA list.");
+          return;
+        }
+
+        const lgaLayer = L.geoJSON({
+          type: "FeatureCollection",
+          features: selectedFeatures
+        }, {
+          pane: "lgaPane",
+          style: {
+            color: "#1d4ed8",
+            weight: 1.5,
+            opacity: 0.85,
+            fillColor: "#bfdbfe",
+            fillOpacity: 0.12
+          },
+          onEachFeature: (feature, layer) => {
+            const lgaName = getFeatureValue(feature, lgaNameFields) || "Metropolitan LGA";
+            layer.bindPopup(`<strong>${escapeHtml(lgaName)}</strong>`);
+          }
+        });
+
+        lgaLayerGroup.clearLayers();
+        lgaLayer.addTo(lgaLayerGroup);
+
+        updateLGAStatus(`${selectedFeatures.length} metropolitan LGA boundaries loaded.`);
+        console.log(`Loaded ${selectedFeatures.length} metropolitan LGA features from data/lga.geojson.`);
+      } catch (error) {
+        console.error("Failed to load LGA GeoJSON:", error);
+        updateLGAStatus("Error: data/lga.geojson could not be loaded. Confirm the file exists and open this page through a local server.");
+      }
+    }
+
+    // Load SA3 boundaries as a light regional context layer.
+    async function loadSA3() {
+      try {
+        updateSA3Status("Loading SA3 boundaries...");
+
+        const response = await fetch(sa3DataPath);
+        if (!response.ok) {
+          throw new Error(`Could not load ${sa3DataPath}`);
+        }
+
+        const sa3GeoJson = await response.json();
+        const features = getGeoJsonFeatures(sa3GeoJson);
+
+        if (features.length === 0) {
+          updateSA3Status("Error: data/sa3.geojson does not contain valid SA3 features.");
+          console.error("SA3 GeoJSON loaded, but no valid features were found.");
+          return;
+        }
+
+        const hasMembershipField = features.some((feature) =>
+          findNameProperty(feature, sa3MembershipFields)
+        );
+
+        let selectedFeatures = features;
+        let filterMessage = "No GCCSA membership field found; displaying all SA3 features lightly.";
+
+        if (hasMembershipField) {
+          selectedFeatures = features.filter(isGreaterSydneyMembership);
+          filterMessage = "Filtered SA3 boundaries to Greater Sydney using GCCSA fields.";
+        }
+
+        if (hasMembershipField && selectedFeatures.length === 0) {
+          updateSA3Status("Error: No Greater Sydney SA3 features were found in data/sa3.geojson.");
+          console.error("SA3 GeoJSON has GCCSA fields, but no Greater Sydney SA3 features matched.");
+          return;
+        }
+
+        const sa3Layer = L.geoJSON({
+          type: "FeatureCollection",
+          features: selectedFeatures
+        }, {
+          pane: "sa3Pane",
+          style: {
+            color: "#4b5563",
+            weight: 1,
+            opacity: 0.65,
+            fillColor: "#64748b",
+            fillOpacity: 0.025
+          },
+          onEachFeature: (feature, layer) => {
+            const sa3Name = getFeatureValue(feature, sa3NameFields) || "SA3 area";
+            const sa3Code = getFeatureValue(feature, sa3CodeFields) || "Not available";
+
+            layer.bindPopup(`
+              <strong>${escapeHtml(sa3Name)}</strong><br>
+              SA3 code: ${escapeHtml(sa3Code)}
+            `);
+          }
+        });
+
+        sa3LayerGroup.clearLayers();
+        sa3Layer.addTo(sa3LayerGroup);
+
+        updateSA3Status(`${filterMessage} ${selectedFeatures.length} SA3 features loaded.`);
+        console.log(`Loaded ${selectedFeatures.length} SA3 features from data/sa3.geojson.`);
+      } catch (error) {
+        console.error("Failed to load SA3 GeoJSON:", error);
+        updateSA3Status("Error: data/sa3.geojson could not be loaded. Confirm the file exists and open this page through a local server.");
+      }
+    }
+
+    // Load SA2 boundaries as an optional high-detail layer.
+    async function loadSA2() {
+      try {
+        updateSA2Status("Loading SA2 boundaries...");
+
+        const response = await fetch(sa2DataPath);
+        if (!response.ok) {
+          throw new Error(`Could not load ${sa2DataPath}`);
+        }
+
+        const sa2GeoJson = await response.json();
+        const features = getGeoJsonFeatures(sa2GeoJson);
+
+        if (features.length === 0) {
+          updateSA2Status("Error: data/sa2.geojson does not contain valid SA2 features.");
+          console.error("SA2 GeoJSON loaded, but no valid features were found.");
+          return;
+        }
+
+        const hasMembershipField = features.some((feature) =>
+          findNameProperty(feature, sa2MembershipFields)
+        );
+
+        let selectedFeatures = features;
+        let filterMessage = "No GCCSA membership field found; SA2 layer loaded as provided.";
+
+        if (hasMembershipField) {
+          selectedFeatures = features.filter(isGreaterSydneySA2Membership);
+          filterMessage = "Filtered SA2 boundaries to Greater Sydney using GCCSA fields.";
+        }
+
+        if (hasMembershipField && selectedFeatures.length === 0) {
+          updateSA2Status("Error: No Greater Sydney SA2 features were found in data/sa2.geojson.");
+          console.error("SA2 GeoJSON has GCCSA fields, but no Greater Sydney SA2 features matched.");
+          return;
+        }
+
+        const sa2Layer = L.geoJSON({
+          type: "FeatureCollection",
+          features: selectedFeatures
+        }, {
+          pane: "sa2Pane",
+          renderer: detailRenderer,
+          style: {
+            color: "#9ca3af",
+            weight: 0.5,
+            opacity: 0.75,
+            fill: false
+          },
+          onEachFeature: (feature, layer) => {
+            const sa2Name = getFeatureValue(feature, sa2NameFields) || "SA2 area";
+            const sa2Code = getFeatureValue(feature, sa2CodeFields) || "Not available";
+
+            layer.bindPopup(`
+              <strong>${escapeHtml(sa2Name)}</strong><br>
+              SA2 code: ${escapeHtml(sa2Code)}
+            `);
+          }
+        });
+
+        sa2LayerGroup.clearLayers();
+        sa2Layer.addTo(sa2LayerGroup);
+
+        updateSA2Status(`${filterMessage} ${selectedFeatures.length} SA2 features loaded. Use the checkbox to show or hide them.`);
+        console.log(`Loaded ${selectedFeatures.length} SA2 features from data/sa2.geojson.`);
+      } catch (error) {
+        console.error("Failed to load SA2 GeoJSON:", error);
+        updateSA2Status("Error: data/sa2.geojson could not be loaded. Confirm the file exists and open this page through a local server.");
+      }
+    }
+
+    document.getElementById("greaterSydneyToggle").addEventListener("change", (event) => {
+      if (event.target.checked) {
+        map.addLayer(greaterSydneyLayerGroup);
+      } else {
+        map.removeLayer(greaterSydneyLayerGroup);
+      }
+    });
+
+    document.getElementById("lgaToggle").addEventListener("change", (event) => {
+      if (event.target.checked) {
+        map.addLayer(lgaLayerGroup);
+      } else {
+        map.removeLayer(lgaLayerGroup);
+      }
+    });
+
+    document.getElementById("sa3Toggle").addEventListener("change", (event) => {
+      if (event.target.checked) {
+        map.addLayer(sa3LayerGroup);
+      } else {
+        map.removeLayer(sa3LayerGroup);
+      }
+    });
+
+    document.getElementById("sa2Toggle").addEventListener("change", (event) => {
+      if (event.target.checked) {
+        map.addLayer(sa2LayerGroup);
+      } else {
+        map.removeLayer(sa2LayerGroup);
+      }
+    });
+
+    document.getElementById("dcMarkerToggle").addEventListener("change", (event) => {
+      if (event.target.checked) {
+        map.addLayer(dcMarkerLayerGroup);
+      } else {
+        map.removeLayer(dcMarkerLayerGroup);
+      }
+    });
+
+    document.getElementById("majorRoadsToggle").addEventListener("change", (event) => {
+      if (event.target.checked) {
+        map.addLayer(majorRoadsLayerGroup);
+      } else {
+        map.removeLayer(majorRoadsLayerGroup);
+      }
+
+      syncMajorRoadLabelVisibility();
+    });
+
+    document.getElementById("majorRoadLabelsToggle").addEventListener("change", () => {
+      syncMajorRoadLabelVisibility();
+    });
+
+    document.getElementById("freightEntryToggle").addEventListener("change", (event) => {
+      if (event.target.checked) {
+        map.addLayer(freightEntryLayerGroup);
+      } else {
+        map.removeLayer(freightEntryLayerGroup);
+      }
+    });
+
+    document.getElementById("benchmarkToggle").addEventListener("change", (event) => {
+      if (event.target.checked) {
+        map.addLayer(benchmarkLayerGroup);
+      } else {
+        map.removeLayer(benchmarkLayerGroup);
+      }
+    });
+
+    document.getElementById("coverageToggle").addEventListener("change", (event) => {
+      if (event.target.checked) {
+        map.addLayer(dcCoverageLayerGroup);
+      } else {
+        map.removeLayer(dcCoverageLayerGroup);
+      }
+    });
+
+    document.getElementById("sampleStoresToggle").addEventListener("change", (event) => {
+      setSampleStoreVisibility(event.target.checked);
+    });
+
+    proposedDCs.forEach((dc) => {
+      document.getElementById(`${dc.id}Radius`).addEventListener("input", (event) => {
+        dc.radiusKm = Number(event.target.value);
+        document.getElementById(`${dc.id}RadiusValue`).textContent = `${dc.radiusKm.toFixed(0)} km`;
+        updateDCLayers();
+      });
+    });
+
+    ["dc1", "dc2"].forEach((dcId) => {
+      document.getElementById(`${dcId}Preset`).addEventListener("change", (event) => {
+        applyPresetToInputs(dcId, event.target.value);
+      });
+    });
+
+    document.getElementById("updateDCButton").addEventListener("click", applyDCCoordinateInputs);
+    document.getElementById("resetDCButton").addEventListener("click", resetDCs);
+    document.getElementById("fitSydneyButton").addEventListener("click", fitToGreaterSydney);
+
+    populatePresetSelectors();
+    setDCInputValues();
+    loadMajorRoads();
+    loadFreightEntryPoints();
+    loadBenchmarkDCs();
+    loadSampleStores();
+    calculateCoverageMetrics();
+    updateDCLayers();
+
+    loadGCCSA()
+      .then(loadLGA)
+      .then(loadSA3)
+      .then(loadSA2);
+  </script>
+</body>
+</html>
